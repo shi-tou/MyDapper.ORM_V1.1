@@ -23,6 +23,7 @@ namespace MyDapper.ORM
         public AdoTemplate()
         {
         }
+        #region ---property---
         /// <summary>
         /// 数据库连接对象
         /// </summary>
@@ -37,8 +38,9 @@ namespace MyDapper.ORM
         /// sql语句构造器
         /// </summary>
         public virtual ISqlGenerator SqlGenerator { get; set; }
+        #endregion
 
-        #region 使用事务
+        #region ---Transaction---
         /// <summary>
         /// 开始事务
         /// </summary>
@@ -114,7 +116,7 @@ namespace MyDapper.ORM
         }
         #endregion
 
-        #region 插入/删除/更新/查询
+        #region ---Insert---
         /// <summary>
         /// 插入
         /// </summary>
@@ -154,7 +156,9 @@ namespace MyDapper.ORM
                 return 0;
             }
         }
+        #endregion
 
+        #region ---Update---
         /// <summary>
         /// 更新
         /// </summary>
@@ -173,7 +177,10 @@ namespace MyDapper.ORM
                 string exMessage = ex.Message;
                 return 0;
             }
-        }        
+        }
+        #endregion
+
+        #region ---Delete---
         /// <summary>
         /// 删除
         /// </summary>
@@ -197,13 +204,43 @@ namespace MyDapper.ORM
         /// 删除
         /// </summary>
         /// <typeparam name="T"></typeparam>
+        /// <param name="columnName"></param>
+        /// <param name="vlaue"></param>
+        /// <returns></returns>
+        public int Delete<T>(string columnName, object vlaue)
+        {
+            var param = new DynamicParameters();
+            param.Add(columnName, vlaue);
+            return Delete<T, DynamicParameters>(param);
+        }
+
+        /// <summary>
+        /// 删除
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="hs"></param>
+        /// <returns></returns>
+        public int Delete<T>(Hashtable hs)
+        {
+            var param = new DynamicParameters();
+            foreach (string key in hs.Keys)
+            {
+                param.Add(key, hs[key]);
+            }
+            return Delete<T, DynamicParameters>(param);
+        }
+
+        /// <summary>
+        /// 删除
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
         /// <param name="hs"></param>
         /// <returns></returns>
         public virtual int Delete<T, W>(W where)
         {
             try
             {
-                string sql = SqlGenerator.GetDeleteSql<T,W>(where);
+                string sql = SqlGenerator.GetDeleteSql<T, W>(where);
                 return DbConnection.Execute(sql, where);
             }
             catch (Exception ex)
@@ -211,6 +248,38 @@ namespace MyDapper.ORM
                 string exMessage = ex.Message;
                 return 0;
             }
+        }
+        #endregion
+
+        #region ---GetModel---
+
+        /// <summary>
+        /// 查询(单记录)
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="hs"></param>
+        /// <returns></returns>
+        public virtual T GetModel<T>(string columnName, object value)
+        {
+            var param = new DynamicParameters();
+            param.Add(columnName, value);
+            return GetModel<T, DynamicParameters>(param);
+        }
+
+        /// <summary>
+        /// 查询(单记录)
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="hs"></param>
+        /// <returns></returns>
+        public virtual T GetModel<T>(Hashtable hs)
+        {
+            var param = new DynamicParameters();
+            foreach (string key in hs.Keys)
+            {
+                param.Add(key, hs[key]);
+            }
+            return GetModel<T, DynamicParameters>(param);
         }
 
         /// <summary>
@@ -223,7 +292,7 @@ namespace MyDapper.ORM
         {
             try
             {
-                string sql = SqlGenerator.GetSelectSql<T,W>(where);
+                string sql = SqlGenerator.GetSelectSql<T, W>(where);
                 return DbConnection.QuerySingle<T>(sql, where);
             }
             catch (Exception ex)
@@ -232,6 +301,9 @@ namespace MyDapper.ORM
                 return default(T);
             }
         }
+        #endregion
+
+        #region ---GetList---
 
         /// <summary>
         /// 查询(多记录)
@@ -256,9 +328,39 @@ namespace MyDapper.ORM
         /// 查询(多记录)
         /// </summary>
         /// <typeparam name="T"></typeparam>
+        /// <param name="columnName"></param>
+        /// <param name="vlaue"></param>
+        /// <returns></returns>
+        public List<T> GetList<T>(string columnName, object value)
+        {
+            var param = new DynamicParameters();
+            param.Add(columnName, value);
+            return GetList<T, DynamicParameters>(param);
+        }
+
+        /// <summary>
+        /// 查询(单记录)
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="hs"></param>
+        /// <returns></returns>
+        public virtual List<T> GetList<T>(Hashtable hs)
+        {
+            var param = new DynamicParameters();
+            foreach (string key in hs.Keys)
+            {
+                param.Add(key, hs[key]);
+            }
+            return GetList<T, DynamicParameters>(param);
+        }
+
+        /// <summary>
+        /// 查询(多记录)
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
         /// <param name="where"></param>
         /// <returns></returns>
-        public virtual List<T> GetList<T, W>(W where) 
+        public virtual List<T> GetList<T, W>(W where)
         {
             try
             {
@@ -291,7 +393,11 @@ namespace MyDapper.ORM
                 string exMessage = ex.Message;
                 return default(List<T>);
             }
-        }        
+        }
+        #endregion
+
+        #region ---GetPageList---
+
         /// <summary>
         /// 分页查询
         /// </summary>
@@ -352,11 +458,11 @@ namespace MyDapper.ORM
         /// <param name="pageSize">页大小</param>
         /// <param name="orderBy">排序</param>
         /// <returns></returns>
-        public virtual PageList<T> GetPageList<T,W>(string sql, W where, int pageIndex, int pageSize, string orderBy)
+        public virtual PageList<T> GetPageList<T, W>(string sql, W where, int pageIndex, int pageSize, string orderBy)
         {
             try
             {
-                string getCountSql = string.Format("select count(1) from ({0}) as A",sql);
+                string getCountSql = string.Format("select count(1) from ({0}) as A", sql);
                 int totalCount = Convert.ToInt32(DbConnection.ExecuteScalar(getCountSql, where));
                 sql = SqlGenerator.GetPageListSql(sql, pageIndex, pageSize, orderBy);
                 List<T> list = DbConnection.Query<T>(sql, where).ToList();
@@ -368,6 +474,10 @@ namespace MyDapper.ORM
                 return default(PageList<T>);
             }
         }
+
+        #endregion
+
+        #region ---GetCount---
 
         /// <summary>
         /// 获取计数
@@ -398,7 +508,7 @@ namespace MyDapper.ORM
             try
             {
                 string sql = SqlGenerator.GetCountSql<T, W>(where);
-                return Convert.ToInt32(DbConnection.ExecuteScalar(sql,where));
+                return Convert.ToInt32(DbConnection.ExecuteScalar(sql, where));
             }
             catch (Exception ex)
             {
@@ -408,7 +518,7 @@ namespace MyDapper.ORM
         }
         #endregion
 
-        #region 执行Sql语句方法
+        #region ---ExecuteSql---
         /// <summary>
         /// 执行SQL语句,返回影响的行数
         /// </summary>
@@ -512,6 +622,7 @@ namespace MyDapper.ORM
         }
         #endregion
 
+        #region ---Dispose---
         /// <summary>
         /// 释放资源
         /// 1-如果事务异常，则回滚事务
@@ -528,5 +639,6 @@ namespace MyDapper.ORM
                 DbConnection.Close();
             }
         }
+        #endregion
     }
 }
